@@ -1,0 +1,23 @@
+name: basketball-reference
+services:
+  postgres:
+    container_name: ${COMPOSE_PROJECT_NAME}-database
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: pguser
+      POSTGRES_PASSWORD: pgpass
+      POSTGRES_DB: ${COMPOSE_PROJECT_NAME}
+    volumes:
+      - pgdata:/var/lib/postgresql/data   
+    ports:
+      - 5432:5432
+    networks:
+      - main
+
+volumes:
+  pgdata:
+
+networks:
+  main:
+    name: ${COMPOSE_PROJECT_NAME}

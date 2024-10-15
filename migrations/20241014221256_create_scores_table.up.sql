@@ -1,0 +1,19 @@
+CREATE TABLE IF NOT EXISTS scores (
+    id SERIAL,
+    date DATE NOT NULL,
+    home_team VARCHAR NOT NULL,
+    away_team VARCHAR NOT NULL,
+    winner VARCHAR NOT NULL,
+    final_score_home INTEGER NOT NULL,
+    final_score_away INTEGER NOT NULL,
+    h1 INTEGER NOT NULL,
+    a1 INTEGER NOT NULL,
+    h2 INTEGER NOT NULL,
+    a2 INTEGER NOT NULL,
+    h3 INTEGER NOT NULL,
+    a3 INTEGER NOT NULL,
+    h4 INTEGER NOT NULL,
+    a4 INTEGER NOT NULL,
+    hot INTEGER,
+    aot INTEGER
+);

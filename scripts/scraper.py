@@ -1,7 +1,7 @@
 import sys
 import logging
 import requests
-import pandas as pd
+import scores as ScoresPkg
 from http import HTTPStatus
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
@@ -39,36 +39,74 @@ class Scraper:
         gameSummaries = soup.find("div", class_="game_summaries")
         gameSummariesExpanded = gameSummaries.find_all("div", class_="game_summary expanded nohover")
 
-        scoresDf = instantiateScoreDataFrame()
+        scores = []
         for gameSummary in gameSummariesExpanded:
-            scores = gameSummary.find_all("tr", class_=["winner", "loser"])
-            if len(scores) != 2:
+            scoreRows = gameSummary.find_all("tr", class_=["winner", "loser"])
+            if len(scoreRows) != 2:
                 logging.error(f"Unexpected number of scores for game: {url}")
                 continue
 
-            scoreDf = instantiateScoreDataFrame()
-            for index, score in enumerate(scores):
-                teamAndScore = score.text.strip().split("\n")
-                if len(teamAndScore) < 2:
-                    logging.error(f"Invalid team and score: {teamAndScore}")
-                    continue
+            for index, score in enumerate(scoreRows):
                 if index == 0:
-                    scoreDf["away_team"] = teamAndScore[0]
-                    scoreDf["final_score_away"] = teamAndScore[1]
-                    if score["class"][0] == "winner":
-                        scoreDf["winner"] = teamAndScore[0]
+                    awayTeam = score.a.text
+                    finalScoreAway = int(score.find("td", class_="right").text)
                 else:
-                    scoreDf["home_team"] = teamAndScore[0]
-                    scoreDf["final_score_home"] = teamAndScore[1]
-                    if score["class"][0] == "winner":
-                        scoreDf["winner"] = teamAndScore[0]
-            scoresDf = pd.concat([scoresDf, scoreDf.iloc[[0]]])
-            # quarterScores = gameSummary.find_all("td", class_="center")
-        print("done for the day")
-
-
+                    homeTeam = score.a.text
+                    finalScoreHome = int(score.find("td", class_="right").text)
             
+            quarterScores = gameSummary.find_all("td", class_="center")
+            if len(quarterScores) == 8:
+                a1 = int(quarterScores[0].text)
+                a2 = int(quarterScores[1].text)
+                a3 = int(quarterScores[2].text)
+                a4 = int(quarterScores[3].text)
+                h1 = int(quarterScores[4].text)
+                h2 = int(quarterScores[5].text)
+                h3 = int(quarterScores[6].text)
+                h4 = int(quarterScores[7].text)
+                hot = 0
+                aot = 0
+            elif len(quarterScores) == 10:
+                a1 = int(quarterScores[0].text)
+                a2 = int(quarterScores[1].text)
+                a3 = int(quarterScores[2].text)
+                a4 = int(quarterScores[3].text)
+                aot = int(quarterScores[4].text)
+                h1 = int(quarterScores[5].text)
+                h2 = int(quarterScores[6].text)
+                h3 = int(quarterScores[7].text)
+                h4 = int(quarterScores[8].text)
+                hot = int(quarterScores[9].text)
+            else:
+                logging.error(f"TODO: handle double OT // or unexpected number of quarters {url}")
+                continue
 
+            scoreObj = ScoresPkg.Score(
+                currentDate,
+                homeTeam,
+                awayTeam,
+                finalScoreHome,
+                finalScoreAway,
+                h1,
+                a1,
+                h2,
+                a2,
+                h3,
+                a3,
+                h4,
+                a4,
+                hot,
+                aot
+            )
+            scores.append(scoreObj)
+
+        scoresDF = ScoresPkg.ScoresToDataFrame(scores)
+        logging.debug(
+            "{totalScores} games played on {date}".format(
+                totalScores=len(scoresDF),
+                date=currentDate.strftime("%m/%d/%Y")
+            )
+        )
 
     def run(self):
         currentDate = self.startDate
@@ -76,28 +114,6 @@ class Scraper:
             logging.debug(currentDate.strftime("%Y-%m-%d"))
             self.retreiveScoreData(currentDate)
             currentDate += timedelta(days=1)
-
-def instantiateScoreDataFrame() -> pd.DataFrame:
-    return pd.DataFrame(
-        {
-            # "date": pd.Series(dtype="datetime"),
-            "home_team": pd.Series(dtype="str"),
-            "away_team": pd.Series(dtype="str"),
-            "winner": pd.Series(dtype="str"),
-            "final_score_home": pd.Series(dtype="int"),
-            "final_score_away": pd.Series(dtype="int"),
-            "h1": pd.Series(dtype="int"),
-            "a1": pd.Series(dtype="int"),
-            "h2": pd.Series(dtype="int"),
-            "a2": pd.Series(dtype="int"),
-            "h3": pd.Series(dtype="int"),
-            "a3": pd.Series(dtype="int"),
-            "h4": pd.Series(dtype="int"),
-            "a4": pd.Series(dtype="int"),
-            "hot": pd.Series(dtype="int"),
-            "aot": pd.Series(dtype="int"),
-        }
-    )
 
 if __name__ == "__main__":
     logging.basicConfig(

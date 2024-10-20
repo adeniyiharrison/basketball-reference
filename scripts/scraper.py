@@ -1,4 +1,4 @@
-import sys
+import os
 import logging
 import requests
 import scores as ScoresPkg
@@ -120,9 +120,16 @@ if __name__ == "__main__":
         level=logging.DEBUG,
         format="%(asctime)s %(message)s"
     )
-    kwargs = dict(arg.split("=") for arg in sys.argv[1:])
-    startDate = kwargs["start_date"]
-    endDate = kwargs["end_date"]
+
+    startDate = os.getenv("SCRAPE_START_DATE")
+    if startDate is None:
+        logging.error("scrape_start_date environment variable not set")
+        exit(1)
+
+    endDate = os.getenv("SCRAPE_END_DATE")
+    if endDate is None:
+        endDate = startDate
+        
 
     scraper = Scraper(startDate, endDate)
     scraper.run()

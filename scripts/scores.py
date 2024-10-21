@@ -25,7 +25,7 @@ class Score:
         if finalScoreHome > finalScoreAway:
             winner = homeTeam
 
-        self.date = date,
+        self.date = date
         self.homeTeam = homeTeam
         self.awayTeam = awayTeam
         self.winner = winner
@@ -41,6 +41,66 @@ class Score:
         self.a4 = a4
         self.hOT = hOT
         self.aOT = aOT
+    
+    # Update to use psycopg parameters
+    # https://www.psycopg.org/psycopg3/docs/basic/params.html#execute-arguments
+    def returnUpsertSql(self) -> str:
+        return f'''
+            INSERT INTO scores (
+                date,
+                home_team,
+                away_team,
+                winner,
+                final_score_home,
+                final_score_away,
+                h1,
+                a1,
+                h2,
+                a2,
+                h3,
+                a3,
+                h4,
+                a4,
+                hot,
+                aot
+            )
+            VALUES (
+                '{self.date.isoformat()}',
+                '{self.homeTeam}',
+                '{self.awayTeam}',
+                '{self.winner}',
+                {self.finalScoreHome},
+                {self.finalScoreAway},
+                {self.h1},
+                {self.a1},
+                {self.h2},
+                {self.a2},
+                {self.h3},
+                {self.a3},
+                {self.h4},
+                {self.a4},
+                {self.hOT},
+                {self.aOT}
+            ) ON CONFLICT (
+                date, home_team, away_team
+            ) DO UPDATE SET 
+                home_team='{self.homeTeam}',
+                away_team='{self.awayTeam}',
+                winner='{self.winner}',
+                final_score_home={self.finalScoreHome},
+                final_score_away={self.finalScoreAway},
+                h1={self.h1},
+                a1={self.a1},
+                h2={self.h2},
+                a2={self.a2},
+                h3={self.h3},
+                a3={self.a3},
+                h4={self.h4},
+                a4={self.a4},
+                hot={self.hOT},
+                aot={self.aOT}
+            ;
+        '''
 
     def toDataFrame(self) -> pd.DataFrame:
         data = {

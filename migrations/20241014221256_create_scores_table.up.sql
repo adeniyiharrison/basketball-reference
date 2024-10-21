@@ -1,5 +1,4 @@
 CREATE TABLE IF NOT EXISTS scores (
-    id SERIAL,
     date DATE NOT NULL,
     home_team VARCHAR NOT NULL,
     away_team VARCHAR NOT NULL,
@@ -15,5 +14,7 @@ CREATE TABLE IF NOT EXISTS scores (
     h4 INTEGER NOT NULL,
     a4 INTEGER NOT NULL,
     hot INTEGER,
-    aot INTEGER
+    aot INTEGER,
+    PRIMARY KEY(date, home_team, away_team),
+    CONSTRAINT score_dupe_constraint UNIQUE (date, home_team, away_team)
 );

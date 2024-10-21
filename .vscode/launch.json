@@ -12,6 +12,7 @@
             "request": "launch",
             "program": "scripts/scraper.py",
             "env": {
+                "PSQL_URL": "postgres://pguser:pgpass@localhost:5432/basketball-reference?sslmode=disable",
                 "SCRAPE_START_DATE": "2023-11-01"
                 // "SCRAPE_END_DATE": "2023-11-10"
             }

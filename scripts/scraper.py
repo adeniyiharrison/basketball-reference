@@ -1,5 +1,6 @@
 import os
 import logging
+import psycopg
 import requests
 import scores as ScoresPkg
 from http import HTTPStatus
@@ -9,7 +10,17 @@ from bs4 import BeautifulSoup
 class Scraper:
     """Scraper class"""
 
-    def __init__(self, startDate, endDate):
+    def __init__(self):
+
+        startDate = os.getenv("SCRAPE_START_DATE")
+        if startDate is None:
+            logging.error("SCRAPE_START_DATE environment variable not set")
+            exit(1)
+
+        endDate = os.getenv("SCRAPE_END_DATE")
+        if endDate is None:
+            endDate = startDate
+
         startDateObj = datetime.strptime(startDate, "%Y-%m-%d").date()
         endDateObj = datetime.strptime(endDate, "%Y-%m-%d").date()
         if endDateObj < startDateObj:
@@ -20,6 +31,13 @@ class Scraper:
         self.startDate = startDateObj
         self.endDate = endDateObj
         self.scoreEndpoint = "https://www.basketball-reference.com/boxscores/index.fcgi?month={month}&day={day}&year={year}"
+
+        psqlURL = os.getenv("PSQL_URL")
+        if psqlURL is None:
+            logging.error("PSQL_URL environment variable not set")
+            exit(1)
+        self.psqlObj = psycopg.connect(conninfo=psqlURL)
+
 
     def retreiveScoreData(self, currentDate: datetime):
 
@@ -100,13 +118,26 @@ class Scraper:
             )
             scores.append(scoreObj)
 
-        scoresDF = ScoresPkg.ScoresToDataFrame(scores)
+        # scoresDF = ScoresPkg.ScoresToDataFrame(scores)
         logging.debug(
-            "{totalScores} games played on {date}".format(
-                totalScores=len(scoresDF),
-                date=currentDate.strftime("%m/%d/%Y")
+            "{totalScores} games played on {currentDate}".format(
+                totalScores=len(scores),
+                currentDate=currentDate.strftime("%m/%d/%Y")
             )
         )
+        self.upsertScores(scores)
+
+    def upsertScores(self, scores: list[ScoresPkg.Score]):
+        with self.psqlObj as conn:
+            with conn.cursor() as cursor:
+                for score in scores:
+                    cursor.execute(score.returnUpsertSql())
+                    if cursor.rowcount == 0:
+                        logging.debug(
+                            f"No rows affected by upsert for {score.date} {score.homeTeam} vs {score.awayTeam}"
+                        )
+            conn.commit()
+        logging.info(f"Successfully inserted/updated {len(scores)} scores")
 
     def run(self):
         currentDate = self.startDate
@@ -120,16 +151,6 @@ if __name__ == "__main__":
         level=logging.DEBUG,
         format="%(asctime)s %(message)s"
     )
-
-    startDate = os.getenv("SCRAPE_START_DATE")
-    if startDate is None:
-        logging.error("scrape_start_date environment variable not set")
-        exit(1)
-
-    endDate = os.getenv("SCRAPE_END_DATE")
-    if endDate is None:
-        endDate = startDate
         
-
-    scraper = Scraper(startDate, endDate)
+    scraper = Scraper()
     scraper.run()

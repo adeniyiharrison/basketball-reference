@@ -36,7 +36,15 @@ class Scraper:
         if psqlURL is None:
             logging.error("PSQL_URL environment variable not set")
             exit(1)
-        self.psqlObj = psycopg.connect(conninfo=psqlURL)
+        self._psqlURL = psqlURL
+        self.psqlObj = psycopg.connect(conninfo=self._psqlURL)
+
+    def ensurePostgresConnection(self):
+        """Ensure the PostgreSQL connection is open; reconnect if closed."""
+        # In psycopg3, a closed connection has .closed == True
+        if self.psqlObj is None or self.psqlObj.closed:
+            logging.debug("Reopening PostgreSQL connection")
+            self.psqlObj = psycopg.connect(conninfo=self._psqlURL)
 
 
     def retreiveScoreData(self, currentDate: datetime):
@@ -55,6 +63,13 @@ class Scraper:
         
         soup = BeautifulSoup(response.content, "html.parser")
         gameSummaries = soup.find("div", class_="game_summaries")
+        if gameSummaries is None:
+            logging.info(
+                "no games found on {currentDate}".format(
+                    currentDate=currentDate.strftime("%m/%d/%Y")
+                )
+            )
+            return None
         gameSummariesExpanded = gameSummaries.find_all("div", class_="game_summary expanded nohover")
 
         scores = []
@@ -128,6 +143,7 @@ class Scraper:
         self.upsertScores(scores)
 
     def upsertScores(self, scores: list[ScoresPkg.Score]):
+        self.ensurePostgresConnection()
         with self.psqlObj as conn:
             with conn.cursor() as cursor:
                 for score in scores:

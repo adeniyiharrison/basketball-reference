@@ -1,0 +1,55 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+type Team {
+  city: String!
+  name: String!
+  totalWins: Int!
+  totalLoses: Int!
+}
+
+type Game {
+  date: String!
+  homeTeam: Team!
+  awayTeam: Team!
+  winner: Team!
+  homeFinalScore: Int!
+  awayFinalScore: Int!
+  homeFirstQuarter: Int!
+  awayFirstQuarter: Int!
+  homeSecondQuarter: Int!
+  awaySecondQuarter: Int!
+  homeThirdQuarter: Int!
+  awayThirdQuarter: Int!
+  homeFourthQuarter: Int!
+  awayFourthQuarter: Int!
+  homeOvertime: Int
+  awayOvertime: Int
+}
+
+type Query {
+  gamesByDate(date: String!): [Game!]!
+}
+
+input NewGame {
+  date: String!
+  homeTeam: String!
+  awayTeam: String!
+  homeFinalScore: Int!
+  awayFinalScore: Int!
+  homeFirstQuarter: Int!
+  awayFirstQuarter: Int!
+  homeSecondQuarter: Int!
+  awaySecondQuarter: Int!
+  homeThirdQuarter: Int!
+  awayThirdQuarter: Int!
+  homeFourthQuarter: Int!
+  awayFourthQuarter: Int!
+  homeOvertime: Int
+  awayOvertime: Int
+}
+
+type Mutation {
+  createGame(input: NewGame!): Game!
+}
